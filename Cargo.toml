@@ -1,0 +1,7 @@
+[package]
+name = "mac-notify"
+version = "0.1.0"
+authors = ["riku <12iku.inoue@gmail.com>"]
+
+[dependencies]
+pcap = "0.6.0"

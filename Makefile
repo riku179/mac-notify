@@ -1,9 +1,11 @@
+NIC=${NIC_NAME}
+
 .PHONY: all build
 all:
 	cargo build
-	sudo setcap cap_net_raw,cap_net_admin=eip ./target/debug/mac_parse
-	./target/debug/mac_parse enp2s0f0
+	sudo setcap cap_net_raw,cap_net_admin=eip ./target/debug/mac-notify
+	./target/debug/mac-notify $(NIC)
 
-buld:
-	sudo setcap cap_net_raw,cap_net_admin=eip ./target/debug/mac_parse
-	./target/debug/mac_parse enp2s0f0
+build:
+	sudo setcap cap_net_raw,cap_net_admin=eip ./target/debug/mac-notify
+	./target/debug/mac-notify $(NIC)

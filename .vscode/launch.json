@@ -6,7 +6,7 @@
             "request": "launch",
             "name": "Debug",
             "program": "${workspaceRoot}/target/debug/mac_parse",
-            "args": ['enp2s0f0'],
+            "args": ["enp2s0f0"],
             "cwd": "${workspaceRoot}"
         }
     ]

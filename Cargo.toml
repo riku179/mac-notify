@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["riku <12iku.inoue@gmail.com>"]
 
 [dependencies]
-rocket = "0.3.0"
-rocket_codegen = "0.3.0"
-pcap = "0.6.0"
+rocket = "0.3"
+rocket_codegen = "0.3"
+pcap = "0.6"
+redis = "0.8"
+chrono = "0.4"

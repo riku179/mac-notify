@@ -7,8 +7,13 @@ use std::io::{Cursor, Seek, SeekFrom, Read};
 pub struct MacAddr([u8; 3]);
 
 impl MacAddr {
-    pub fn new(arg: [u8; 3]) -> MacAddr {
-        MacAddr(arg)
+    pub fn new(arg: [u8; 3]) -> MacAddr { MacAddr(arg) }
+    pub fn from_str(str: &String) -> MacAddr {
+        let mut v: [u8; 3] = [0; 3];
+        for (i, x) in str.split('-').enumerate() {
+            v[i] = x.parse::<u8>().unwrap()
+        }
+        MacAddr(v)
     }
 }
 
@@ -23,7 +28,7 @@ fn get_capture(device_name: String) -> Result<Capture<Active>, pcap::Error> {
         name: device_name,
         desc: None,
     };
-    println!("{}", main_device.name);
+    println!("captured device: {}", main_device.name);
 
     Capture::from_device(main_device)
         .unwrap()
@@ -39,14 +44,7 @@ fn get_interface() -> String {
     }
 }
 
-fn consumer(ch: Receiver<MacAddr>) {
-    loop {
-        let mac_addr = ch.recv().unwrap();
-        println!("{:?}", mac_addr);
-    }
-}
-
-pub fn start_capture() -> () {
+pub fn start_capture(consumer: fn(Receiver<MacAddr>) -> ()) -> () {
     match get_capture(get_interface()) {
         Ok(c) => {
             let mut buf: [u8; 3] = [0; 3];

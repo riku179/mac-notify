@@ -80,15 +80,11 @@ fn set_user_in_redis(
     )
 }
 
-fn parse_redis_context(str: &String) -> (String, DateTime<Local>) {
-    let mut v = str.split(':');
-    if let Err(e) = v.nth(1).unwrap().parse::<DateTime<Local>>() {
-        eprintln!("{:?}", e)
-    }
-    (
-        v.nth(0).unwrap().to_string(),
-        Local
-            .datetime_from_str(v.nth(1).unwrap(), "%Y-%m-%d-%H-%M-%S")
-            .unwrap(),
-    )
+fn parse_redis_context(str: &String) -> Result<(String, DateTime<Local>)> {
+    let mut v: Vec<&str> = str.split(':').collect();
+    let date_time = try!(Local.datetime_from_str(
+        v[1].to_string(),
+        "%Y-%m-%d-%H-%M-%S",
+    ));
+    Ok((v[0].to_string(), date_time))
 }

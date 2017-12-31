@@ -3,7 +3,7 @@ use pcap::{self, Device, Capture, Active};
 use std::sync::mpsc::{channel, Receiver};
 use std::io::{Cursor, Seek, SeekFrom, Read};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MacAddr([u8; 3]);
 
 impl MacAddr {

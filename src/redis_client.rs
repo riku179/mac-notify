@@ -6,14 +6,13 @@ use chrono::prelude::*;
 use chrono::{DateTime, Local};
 
 pub fn get_con(address: &str) -> RedisResult<Connection> {
-    let client = Client::open(address)?;
-    client.get_connection()
+    let client = Client::open(address)?; client.get_connection()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct User {
-    name: String,
-    addr: MacAddr,
+    pub name: String,
+    pub addr: MacAddr,
     timestamp: chrono::DateTime<Local>,
 }
 
@@ -23,14 +22,18 @@ impl User {
         set_user_in_redis(con, name, addr, &now)
     }
 
-    pub fn get_from_redis(con: &Connection, addr: MacAddr) -> RedisResult<User> {
-        let c: String = con.get(format!("mac:{}", &addr.to_string()))?;
+    pub fn get_from_redis(con: &Connection, addr: MacAddr) -> Option<User> {
+        let c = con.get(format!("mac:{}", &addr.to_string())).ok()?;
         let (name, timestamp) = parse_redis_context(&c);
-        Ok(User {
-            name: name,
+        Some(User {
+            name,
             addr: addr,
             timestamp: timestamp,
         })
+    }
+
+    pub fn remove_from_redis(con: &Connection, addr: &MacAddr) -> RedisResult<()> {
+        con.del(format!("mac:{}", addr.to_string()))
     }
 
     pub fn push_timestamp(con: &Connection, user: &User) -> RedisResult<()> {
@@ -39,8 +42,8 @@ impl User {
     }
 
     pub fn get_all_list(con: &Connection) -> RedisResult<Vec<User>> {
-        let users_str = get_username_list(con)?;
-        get_all_users(con, &users_str)
+        let keys = get_keys(con)?;
+        get_all_users(con, keys)
     }
 }
 
@@ -49,19 +52,19 @@ fn get_now_time() -> String {
     time_now.format("%Y-%m-%d-%H-%M-%S").to_string()
 }
 
-fn get_username_list(con: &Connection) -> RedisResult<Vec<String>> {
+fn get_keys(con: &Connection) -> RedisResult<Vec<String>> {
     cmd("KEYS").arg("mac:*").query(con)
 }
 
-fn get_all_users(con: &Connection, keys: &Vec<String>) -> RedisResult<Vec<User>> {
-    let names_str = keys.join(" ");
-    let iter = cmd("MGET").arg(names_str).cursor_arg(0).iter(con)?;
+fn get_all_users(con: &Connection, keys: Vec<String>) -> RedisResult<Vec<User>> {
+    let values = cmd("MGET").arg(keys.clone()).cursor_arg(0).iter(con)?;
     let mut v: Vec<User> = vec![];
-    for (c, k) in iter.zip(keys) {
-        let (name, timestamp) = parse_redis_context(&c);
+    for (value, k) in values.zip(keys) {
+        let (name, timestamp) = parse_redis_context(&value);
+        let mac_addr = k.split(':').nth(1).expect("failed to parse").to_string();
         v.push(User {
             name: name,
-            addr: MacAddr::from_str(k),
+            addr: MacAddr::from_str(&mac_addr),
             timestamp: timestamp,
         })
     }
@@ -80,11 +83,11 @@ fn set_user_in_redis(
     )
 }
 
-fn parse_redis_context(str: &String) -> Result<(String, DateTime<Local>)> {
-    let mut v: Vec<&str> = str.split(':').collect();
-    let date_time = try!(Local.datetime_from_str(
-        v[1].to_string(),
-        "%Y-%m-%d-%H-%M-%S",
-    ));
-    Ok((v[0].to_string(), date_time))
+fn parse_redis_context(str: &String) -> (String, DateTime<Local>) {
+    let v: Vec<&str> = str.split(':').collect();
+    match Local.datetime_from_str(&v[1].to_string(), "%Y-%m-%d-%H-%M-%S",) {
+        Ok(date_time) => (v[0].to_string(), date_time),
+        Err(e) => panic!(e)
+    }
 }
+//    let values: Vec<String> = con.get(keys.clone())?;

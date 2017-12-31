@@ -9,3 +9,6 @@ all:
 run:
 	@sudo setcap cap_net_raw,cap_net_admin=eip ./target/debug/mac-notify
 	@./target/debug/mac-notify $(NIC)
+
+check:
+	cargo check

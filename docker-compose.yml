@@ -2,5 +2,12 @@ version: "3.2"
 services:
     redis:
         image: redis
+        volumes:
+            - './redis.conf:/etc/redis.conf'
+            - 'data:/data'
         ports:
             - '6379:6379'
+
+volumes:
+    data:
+        driver: local

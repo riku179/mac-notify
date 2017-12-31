@@ -8,4 +8,14 @@ rocket = "0.3"
 rocket_codegen = "0.3"
 pcap = "0.6"
 redis = "0.8"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+r2d2 = "0.8"
+r2d2_redis = "0.7"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+
+[dependencies.rocket_contrib]
+version = "*"
+default-features = false
+features = ["json"]

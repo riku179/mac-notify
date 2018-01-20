@@ -13,31 +13,34 @@ use r2d2_redis::RedisConnectionManager;
 use mac_notify::{mac_cap, handlers, redis_client};
 use mac_notify::redis_client::User;
 
-fn consumer(ch: Receiver<mac_cap::MacAddr>) -> () {
-    match redis_client::get_con("redis://localhost:6379") {
-        Ok(con) => loop {
-            let mac_addr = ch.recv().unwrap();
-//            eprintln!("{}", mac_addr);
-            if let Some(user) = User::get_from_redis(&con, mac_addr) {
-                User::push_timestamp(&con, &user).unwrap()
-            }
+fn consumer(ch: Receiver<mac_cap::MacAddr>, con: redis::Connection) -> () {
+    loop {
+        let mac_addr = ch.recv().unwrap();
+        if let Some(user) = User::get_from_redis(&con, mac_addr) {
+            User::push_timestamp(&con, &user).unwrap()
         }
-        Err(err) => { eprintln!("Failed to connect to redis!"); panic!(err) }
     }
 }
 
+
+
 // ref) https://rocket.rs/guide/state/#managed-pool
-fn init_redis_pool() -> r2d2::Pool<RedisConnectionManager> {
-    let manager = RedisConnectionManager::new("redis://localhost")
+fn new_redis_pool(url: &str) -> r2d2::Pool<RedisConnectionManager> {
+    let manager = RedisConnectionManager::new(url)
         .expect("redis connection pool manager");
     r2d2::Pool::builder().build(manager).expect("redis connection pool")
 }
 
 fn main() {
-    thread::spawn(move || mac_cap::start_capture(consumer));
+    let redis_con = redis_client::get_con("redis://localhost:6379")
+        .expect("Failed to get redis connection");
+
+    thread::spawn(move || mac_cap::start_capture(
+        consumer, redis_con)
+    );
 
     rocket::ignite()
-        .manage(init_redis_pool())
+        .manage(new_redis_pool("redis://localhost:6379"))
         .mount("/", routes![
         handlers::get_users,
         handlers::add_user,

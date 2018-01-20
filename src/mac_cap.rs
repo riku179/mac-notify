@@ -2,6 +2,7 @@ use std::{env, thread, fmt};
 use pcap::{self, Device, Capture, Active};
 use std::sync::mpsc::{channel, Receiver};
 use std::io::{Cursor, Seek, SeekFrom, Read};
+use redis::Connection;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MacAddr([u8; 3]);
@@ -44,12 +45,12 @@ fn get_interface() -> String {
     }
 }
 
-pub fn start_capture(consumer: fn(Receiver<MacAddr>) -> ()) -> () {
+pub fn start_capture(consumer: fn(Receiver<MacAddr>, Connection) -> (), con: Connection) -> () {
     match get_capture(get_interface()) {
         Ok(c) => {
             let mut buf: [u8; 3] = [0; 3];
             let (tx, rx) = channel();
-            thread::spawn(move || consumer(rx));
+            thread::spawn(move || consumer(rx, con));
 
             let mut cap = c;
 

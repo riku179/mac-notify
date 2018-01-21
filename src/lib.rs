@@ -11,8 +11,10 @@ extern crate r2d2_redis;
 extern crate chrono;
 extern crate serde;
 extern crate serde_json;
+#[macro_use] extern crate diesel;
 
 pub mod mac_cap;
 pub mod handlers;
 pub mod redis_client;
 pub mod rocket_state;
+pub mod model;

@@ -8,6 +8,20 @@ services:
         ports:
             - '6379:6379'
 
+    db:
+        image: mariadb
+        volumes:
+            - 'db_data:/var/lib/mysql'
+        ports:
+            - '3306:3306'
+        command: '-C utf8'
+        environment:
+            - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+            - MYSQL_USER=admin
+            - MYSQL_DATABASE=mac_notify
+
 volumes:
     data:
+        driver: local
+    db_data:
         driver: local

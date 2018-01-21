@@ -1,9 +1,18 @@
 use mac_cap::MacAddr;
+use r2d2;
+use r2d2_redis::RedisConnectionManager;
 use redis::cmd;
 use redis::{Commands, RedisResult, Connection, Client};
 use chrono;
 use chrono::prelude::*;
 use chrono::{DateTime, Local};
+
+// ref) https://rocket.rs/guide/state/#managed-pool
+pub fn new_redis_pool(url: &str) -> Result<r2d2::Pool<RedisConnectionManager>, r2d2::Error> {
+    let manager = RedisConnectionManager::new(url)
+        .expect("redis connection pool manager");
+    r2d2::Pool::builder().build(manager)
+}
 
 pub fn get_con(address: &str) -> RedisResult<Connection> {
     let client = Client::open(address)?; client.get_connection()
@@ -47,7 +56,7 @@ impl User {
     }
 }
 
-fn get_mac_key(addr: &MacAddr) -> &str {
+fn get_mac_key(addr: &MacAddr) -> String {
     format!("mac:{}", addr.to_string())
 }
 

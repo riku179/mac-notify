@@ -4,13 +4,10 @@
 extern crate mac_notify;
 extern crate redis;
 extern crate rocket;
-extern crate r2d2;
-extern crate r2d2_redis;
 
 use std::thread;
 use std::sync::mpsc::Receiver;
-use r2d2_redis::RedisConnectionManager;
-use mac_notify::{mac_cap, handlers, redis_client};
+use mac_notify::{mac_cap, handlers, redis_client, model};
 use mac_notify::redis_client::User;
 
 fn consumer(ch: Receiver<mac_cap::MacAddr>, con: redis::Connection) -> () {
@@ -22,15 +19,6 @@ fn consumer(ch: Receiver<mac_cap::MacAddr>, con: redis::Connection) -> () {
     }
 }
 
-
-
-// ref) https://rocket.rs/guide/state/#managed-pool
-fn new_redis_pool(url: &str) -> r2d2::Pool<RedisConnectionManager> {
-    let manager = RedisConnectionManager::new(url)
-        .expect("redis connection pool manager");
-    r2d2::Pool::builder().build(manager).expect("redis connection pool")
-}
-
 fn main() {
     let redis_con = redis_client::get_con("redis://localhost:6379")
         .expect("Failed to get redis connection");
@@ -39,8 +27,14 @@ fn main() {
         consumer, redis_con)
     );
 
+    let redis_pool = redis_client::new_redis_pool("redis://localhost:6379")
+        .expect("redis connection pool");
+    let mysql_pool = model::new_mysql_pool("mysql://hogefuga:3306")
+        .expect("mysql connection pool");
+
     rocket::ignite()
-        .manage(new_redis_pool("redis://localhost:6379"))
+        .manage(redis_pool)
+        .manage(mysql_pool)
         .mount("/", routes![
         handlers::get_users,
         handlers::add_user,

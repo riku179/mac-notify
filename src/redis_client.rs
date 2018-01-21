@@ -23,7 +23,7 @@ impl User {
     }
 
     pub fn get_from_redis(con: &Connection, addr: MacAddr) -> Option<User> {
-        let c = con.get(format!("mac:{}", &addr.to_string())).ok()?;
+        let c = con.get(get_mac_key(&addr)).ok()?;
         let (name, timestamp) = parse_redis_context(&c);
         Some(User {
             name,
@@ -33,7 +33,7 @@ impl User {
     }
 
     pub fn remove_from_redis(con: &Connection, addr: &MacAddr) -> RedisResult<()> {
-        con.del(format!("mac:{}", addr.to_string()))
+        con.del(get_mac_key(&addr))
     }
 
     pub fn push_timestamp(con: &Connection, user: &User) -> RedisResult<()> {
@@ -45,6 +45,10 @@ impl User {
         let keys = get_keys(con)?;
         get_all_users(con, keys)
     }
+}
+
+fn get_mac_key(addr: &MacAddr) -> &str {
+    format!("mac:{}", addr.to_string())
 }
 
 fn get_now_time() -> String {
@@ -59,12 +63,13 @@ fn get_keys(con: &Connection) -> RedisResult<Vec<String>> {
 fn get_all_users(con: &Connection, keys: Vec<String>) -> RedisResult<Vec<User>> {
     let values = cmd("MGET").arg(keys.clone()).cursor_arg(0).iter(con)?;
     let mut v: Vec<User> = vec![];
+
     for (value, k) in values.zip(keys) {
         let (name, timestamp) = parse_redis_context(&value);
-        let mac_addr = k.split(':').nth(1).expect("failed to parse").to_string();
+        let mac_addr = k.split(':').nth(1).expect("failed to parse redis record").to_string();
         v.push(User {
             name: name,
-            addr: MacAddr::from_str(&mac_addr),
+            addr: mac_addr.parse().expect("failed to parse Mac address"),
             timestamp: timestamp,
         })
     }
@@ -78,7 +83,7 @@ fn set_user_in_redis(
     timestamp_str: &String,
 ) -> RedisResult<()> {
     con.set(
-        format!("mac:{}", addr.to_string()),
+        get_mac_key(&addr),
         format!("{}:{}", name, timestamp_str),
     )
 }
@@ -90,4 +95,3 @@ fn parse_redis_context(str: &String) -> (String, DateTime<Local>) {
         Err(e) => panic!(e)
     }
 }
-//    let values: Vec<String> = con.get(keys.clone())?;
